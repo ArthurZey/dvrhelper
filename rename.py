@@ -88,8 +88,17 @@ if os.path.isfile(args.file):
   tvdb = Tvdb(apikey=config["thetvdb_apikey"], language="en")
   episode_name = sanitize_filename(tvdb[show_final][season_int][episode_int]['episodename'])
 
-
-  print(show_final + " - s" + season_display + "e" + episode_display + " - " + episode_name) 
+  print("OLD: " + os.path.abspath(args.file))
+  print("NEW: " + os.path.split(os.path.abspath(args.file))[0] + "/" + show_final + " - s" + season_display + "e" + episode_display + " - " + episode_name + os.path.splitext(args.file)[1])
+  
+  response = None
+  while response not in ["Y", "y", "N", "n", ""]:
+    response = input("Do you wish to rename? [Yn] ")
+  if response in ["", "Y", "y"]:
+    os.rename(os.path.abspath(args.file), os.path.split(os.path.abspath(args.file))[0] + "/" + show_final + " - s" + season_display + "e" + episode_display + " - " + episode_name + os.path.splitext(args.file)[1])
+    print("Renamed!")
+  else:
+    print("Aborted!")
 
 else:
   "File does not exist."
