@@ -7,3 +7,8 @@ cd dvrhelper
 virtualenv -p python3 env
 source env/bin/activate
 pip install tvdb_api
+
+create config.py in the project root:
+  config = {
+    "thetvdb_apikey": "YOUR_TVDB_API_KEY"
+    }

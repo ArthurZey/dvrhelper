@@ -6,6 +6,7 @@ from difflib import SequenceMatcher as SM
 import argparse
 import os.path
 import re
+import unicodedata
 
 parser = argparse.ArgumentParser()
 group = parser.add_mutually_exclusive_group()
@@ -18,6 +19,37 @@ parser.add_argument("-e", "--episode", help="override episode number extraction 
 parser.add_argument("-v", "--verbose", help="turn on verbose output", action="store_true")
 parser.add_argument("--dest", help="specify the destination directory for the file (renamed in place otherwise)", type=str)
 args = parser.parse_args()
+
+def sanitize_filename(filename):
+  # first pass: get rid of accented characters
+  filename = ''.join([c for c in unicodedata.normalize('NFD', filename) if unicodedata.category(c) != 'Mn'])
+  
+  # second pass: do specialized replacements
+  replacements = {
+    ": ": " - ",
+    "–": "-",
+    "—": "--",
+    "{": "(",
+    "}": ")",
+    "[": "(",
+    "]": ")",
+    "<": "(",
+    ">": ")",
+    "|": " ",
+    "`": "'",
+    '"': "'",
+    "/": "-",
+    '\\': "-",
+    }
+  for (old, new) in replacements.items():
+    filename = filename.replace(old, new)
+
+  # third pass: go through, character by character, and strip remaining illegal characters (e.g., "?")
+  valid_chars = "-_.,()!$&+='~ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  filename = ''.join([c for c in filename if c in valid_chars])
+  
+  return filename
+
 
 if os.path.isfile(args.file):
   # extract data from the filename
@@ -53,7 +85,8 @@ if os.path.isfile(args.file):
 
   # now look it up in thetvdb to get the episode name
   episode_name = ""
-  # tvdb = Tvdb(apikey=config["thetvdb_apikey"], language="en")
+  tvdb = Tvdb(apikey=config["thetvdb_apikey"], language="en")
+  episode_name = sanitize_filename(tvdb[show_final][season_int][episode_int]['episodename'])
 
 
   print(show_final + " - s" + season_display + "e" + episode_display + " - " + episode_name) 
