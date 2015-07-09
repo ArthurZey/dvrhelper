@@ -18,6 +18,8 @@ class DVRFile:
     self.episode["num"]  = dict()
     self.episode["name"] = dict()
 
+    self.tvdb = Tvdb(apikey=config["thetvdb_apikey"], language="en")
+
     self.path["given"] = path
 
     if os.path.isfile(path):
@@ -42,3 +44,39 @@ class DVRFile:
     match = regex.match(filename)
 
     return [match.group("show_name"), match.group("season"), match.group("episode")]
+
+  def set_show_name(self, method="tvdb_search", lookup_data=None):
+    # sets self.show_name["disp"] based on self.show_name["raw"] and some transformation
+
+    if method == "tvdb_id":
+      # expected lookup_data is the int for the show's tvdb show ID
+      self.show_name["disp"] = self.tvdb[lookup_data].data["seriesname"]
+    elif method == "dir_search" and os.path.isdir(lookup_data):
+      # expected lookup_data is a string for the path to a directory containing directories for each TV show
+
+      # get the list of directories to match against
+      directories = list()
+      for item in os.listdir(lookup_data):
+        if os.path.isdir(os.path.join(lookup_data, item)):
+          directories.append(item)
+
+      best_match = 0
+      for tvshow in directories:
+        match_ratio = SM(None, tvshow, self.show_name["raw"]).ratio()
+        if match_ratio > best_match:
+          best_match = match_ratio
+          self.show_name["disp"] = tvshow
+
+    elif method == "explicit":
+      self.show_name["disp"] = lookup_data
+    else:
+      # assume "tvdb_search"; no expected lookup_data
+      # need to pass the show formatted more correctly to get a match:
+      self.show_name["disp"] = self.tvdb["".join([c if c not in (".", "_") else " " for c in self.show_name["raw"]])].data["seriesname"]
+
+  def set_episode_name(self):
+    # expects self.show_name["disp"] to be set, uses thetvdb to get the name
+    self.episode["name"]["official"] = self.tvdb[self.show_name["disp"]][self.season["num"]["int"]][self.episode["num"]["int"]]['episodename']
+    self.episode["name"]["file"]     = self.sanitize_filename(self.episode["name"]["official"])
+
+
